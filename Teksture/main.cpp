@@ -1,6 +1,3 @@
-//Autor: Nedeljko Tesanovic
-//Opis: Primjer upotrebe tekstura
-
 #define _CRT_SECURE_NO_WARNINGS
 #define CRES 60 // Circle Resolution = Rezolucija kruga
 
@@ -29,10 +26,10 @@
 unsigned int compileShader(GLenum type, const char* source);
 unsigned int createShader(const char* vsSource, const char* fsSource);
 static unsigned loadImageToTexture(const char* filePath); //Ucitavanje teksture, izdvojeno u funkciju
-static void mouse_callback(GLFWwindow* window, double x, double y);
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+static void mouse_callback(GLFWwindow* window, double x, double y);     //callback funkcija, poziva se svaki put kad se mis minimalno pomeri
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);        //callback funkcija, poziva se kada se pritisne dugme
 void initializeRedCircle(double xCircleCenter, double yCircleCenter);
-GLFWcursor* createCustomCursor(const char* imagePath, int desiredWidth, int desiredHeight);
+GLFWcursor* createCustomCursor(const char* imagePath, int desiredWidth, int desiredHeight);     //GLFWcursor enkapsulira podatke kursora
 unsigned char* loadImage(const char* path, int& width, int& height, int& channels);
 unsigned char* resizeImage(unsigned char* inputImage, int inputWidth, int inputHeight, int channels, int outputWidth, int outputHeight);
 void initScreenDimensions();
@@ -94,14 +91,23 @@ float yCircleCenter=0.0f;
 float centerXR;
 float centerYR;
 
+float sharkCircle1[(CRES + 2) * 2];
+float sharkCenterX1 = 0.5f;
+float sharkCenterY1 = 0.5f;
+float rShark = 0.08f;
+
+float sharkCircle2[(CRES + 2) * 2];
+float sharkCenterX2 = 0.5f;
+float sharkCenterY2 = 0.5f;
+
 float redCircle[(CRES + 2) * 2];
 float aspectRatio = screenWidth / screenHeight;
 
 
 struct Character {
     unsigned int TextureID;  // ID handle of the glyph texture
-    glm::ivec2   Size;       // Size of glyph
-    glm::ivec2   Bearing;    // Offset from baseline to left/top of glyph
+    glm::ivec2   Size;       // Size of glyph (x,y)
+    glm::ivec2   Bearing;    // Offset from baseline to left/top of glyph Pomak levo/desno gore/dole
     unsigned int Advance;    // Offset to advance to next glyph
 };
 
@@ -139,9 +145,9 @@ int main(void)
 
     glfwMakeContextCurrent(window);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);      //vidljivost kursora
+    glfwSetCursorPosCallback(window, mouse_callback);               //pracenje polozaja misa
+    glfwSetMouseButtonCallback(window, mouse_button_callback);      //detektuje klikove
 
     if (glewInit() != GLEW_OK)
     {
@@ -153,23 +159,23 @@ int main(void)
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // disable byte-alignment restriction
 
-    FT_Library ft;
+    FT_Library ft;                  //inicijalizacija biblioteke
     if (FT_Init_FreeType(&ft))
     {
         std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
         return -1;
     }
 
-    FT_Face face;
+    FT_Face face;           //podobjekat za ucitavanje slova iz biblioteke
     if (FT_New_Face(ft, "Fonts/arial.ttf", 0, &face))
     {
         std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
         return -1;
     }
 
-    FT_Set_Pixel_Sizes(face, 0, 48);
+    FT_Set_Pixel_Sizes(face, 0, 48);        //podesavanje pixela
 
-    unsigned int textures[128];
+    unsigned int textures[128];         //svaki asci karakter
     glGenTextures(128, textures);
     for (int i = 0; i < 128; i++) {
         std::cout << "TEXTURE : " << textures[i] << std::endl;
@@ -185,7 +191,7 @@ int main(void)
         // generate texture
         unsigned int texture = textures[c];
         glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(
+        glTexImage2D(           //generisanje teksture za svaki karakter
             GL_TEXTURE_2D,
             0,
             GL_RED,
@@ -203,7 +209,7 @@ int main(void)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         // now store character for later use
-        Character character = {
+        Character character = {             //pravimo Character, pa bismo kasnije napravili mapu
             texture,
             glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
             glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
@@ -407,6 +413,47 @@ int main(void)
     0.02f   // Zvezda 5
     };
 
+    float positionSharks[] = {
+    -0.25f, -0.5f,              //shark1
+    -0.85f, -0.6f,
+    -0.55f, -0.5f
+    };
+
+    float movingSharks[] = {
+     0.0f, 0.0f,              //shark1
+     0.0f, 0.0f,
+     0.0f, 0.0f
+    };
+
+    float offset11 = 0.4f;
+    float offset22 = 0.1f;
+
+    sharkCircle1[0] = positionSharks[0]-offset11; //Centar X0
+    sharkCircle1[1] = positionSharks[1]+0.7*offset22; //Centar Y0
+    sharkCenterX1 = positionSharks[0]-offset11;
+    sharkCenterY1 = positionSharks[1] + 0.7*offset22;
+    //sharkCenterX1 = -0.5f;
+    //sharkCenterY1 = 0.0f;
+    //int i;
+    for (i = 0; i <= CRES; i++)
+    {
+        sharkCircle1[2 + 2 * i] = sharkCenterX1 + rShark * cos((3.141592 / 180) * (i * 360 / CRES)); //Xi (Matematicke funkcije rade sa radijanima)
+        sharkCircle1[2 + 2 * i + 1] = sharkCenterY1 + rShark  * sin((3.141592 / 180) * (i * 360 / CRES)); //Yi
+    }
+
+    sharkCircle2[0] = positionSharks[2]; //Centar X0
+    sharkCircle2[1] = positionSharks[3]+1.3*offset22; //Centar Y0
+    sharkCenterX2 = positionSharks[2];
+    sharkCenterY2 = positionSharks[3] + 1.3 * offset22;
+    //sharkCenterX1 = -0.5f;
+    //sharkCenterY1 = 0.0f;
+    //int i;
+    for (i = 0; i <= CRES; i++)
+    {
+        sharkCircle2[2 + 2 * i] = sharkCenterX2 + rShark * cos((3.141592 / 180) * (i * 360 / CRES)); //Xi (Matematicke funkcije rade sa radijanima)
+        sharkCircle2[2 + 2 * i + 1] = sharkCenterY2 + rShark * sin((3.141592 / 180) * (i * 360 / CRES)); //Yi
+    }
+
     //unsigned int stride = (6) * sizeof(float);
 
     //unsigned int strideTexture = (2 + 2) * sizeof(float);
@@ -468,8 +515,8 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
     glGenBuffers(1, &EBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(palmVertices), palmVertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(palmIndices), palmIndices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);                 //aktivira se u okviru VAO
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(palmIndices), palmIndices, GL_STATIC_DRAW);    //definise redosled crtanja
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, strideTexture, (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, strideTexture, (void*)(2 * sizeof(float)));
@@ -551,7 +598,7 @@ int main(void)
     glBindVertexArray(VAO[9]); // Bindujemo VAO za zvezde
 
     // Kreiramo VBO za pozicije zvezda
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[9]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[9]);          //samo x i y od floata
     glBufferData(GL_ARRAY_BUFFER, sizeof(starPositions), starPositions, GL_STATIC_DRAW);
     // Postavljamo atribute za pozicije (location 0, 2 floats po taèki)
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
@@ -611,19 +658,27 @@ int main(void)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    float positionSharks[] = {
-        -0.25f, -0.5f,              //shark1
-        -0.85f, -0.6f,
-        -0.55f, -0.5f
-    };
 
-    float movingSharks[] = {
-     0.0f, 0.0f,              //shark1
-     0.0f, 0.0f,
-     0.0f, 0.0f
-    };
+    glBindVertexArray(VAO[15]);                  //circle
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[15]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sharkCircle1), sharkCircle1, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glBindVertexArray(VAO[16]);                  //circle
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[16]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sharkCircle2), sharkCircle2, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     unsigned int basicShader = createShader("basic.vert", "basic.frag");
+
+    unsigned int islandsShader = createShader("islands.vert", "basic.frag");
+
 
     unsigned int basicShaderExtends = createShader("basic.vert", "basicExtend.frag");
 
@@ -672,6 +727,10 @@ int main(void)
     bool isIslandLoc = glGetUniformLocation(basicShader, "isIsland");
     bool isFireLoc = glGetUniformLocation(basicShader, "isFire");
     //bool transparencyLoc = glGetUniformLocation(basicShader, "isTransparency");
+
+    unsigned int seaHeightLocIsland = glGetUniformLocation(islandsShader, "seaHeight");
+    bool isIslandLocIsland = glGetUniformLocation(islandsShader, "isIsland");
+    bool isFireLocIsland = glGetUniformLocation(islandsShader, "isFire");
 
     unsigned int seaHeightLocExtend = glGetUniformLocation(basicShaderExtends, "seaHeight");
     bool isIslandLocExtend = glGetUniformLocation(basicShaderExtends, "isIsland");
@@ -838,10 +897,10 @@ int main(void)
 
     std::chrono::duration<double, std::milli> sleep_duration(1000.0 / 60.0);
 
-    glm::mat4 projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f);              //UNIFORM ZA TEKST
+    glm::mat4 projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f);              //UNIFORM ZA TEKST, ortogonalna projekcija, mapira na 0-800 i 0-600
     glUseProgram(textShader);
     int position = glGetUniformLocation(textShader, "position");
-    glUniformMatrix4fv(glGetUniformLocation(textShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(glGetUniformLocation(textShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));    //salje 1 matricu, nepromenjena (nije transponovana), pokazivac na vrednost matrice
 
     float directions[] = { 1.0f, 1.0f, -1.0f };
 
@@ -898,6 +957,7 @@ int main(void)
                     transparencySea = true;
                     //glDisable(GL_BLEND);
                 }
+
             }
             //transparencySea = true;
         }
@@ -990,9 +1050,9 @@ int main(void)
 
         glUniform3f(dynamicColorLocation, r, g, b);
 
-        glBindVertexArray(VAO[1]);
+        //glBindVertexArray(VAO[1]);
 
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         //glBindVertexArray(VAO[0]);
 
@@ -1022,18 +1082,45 @@ int main(void)
             glUniform1f(seaHeightLoc, currentWaterLevel);
             glUniform1f(isIslandLoc, false);
             glUniform1f(isFireLoc, false);
+
+
+            glBindVertexArray(VAO[1]);
+
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         }
         else {
             glUseProgram(basicShader11);
             glUniform1f(seaHeightLoc11, currentWaterLevel);
             glUniform1f(isIslandLoc11, false);
             glUniform1f(isFireLoc11, false);
+
+            glBindVertexArray(VAO[1]);
+
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            glUseProgram(circleShader);
+            //glUniform2f(circlePosLoc, 1.2 * sin(time * speed + 2), 0.7 * cos(time * speed + 2));
+            glUniform2f(circlePosLoc, -movingSharks[0], movingSharks[1]);
+            //glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 0.0);
+            glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 1.0);
+
+            glBindVertexArray(VAO[15]);
+
+            glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(sharkCircle1) / (2 * sizeof(float)));
+
+            glUseProgram(circleShader);
+            //glUniform2f(circlePosLoc, 1.2 * sin(time * speed + 2), 0.7 * cos(time * speed + 2));
+            glUniform2f(circlePosLoc, -movingSharks[2], movingSharks[3]);
+            glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 1.0);
+
+            glBindVertexArray(VAO[16]);
+
+            glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(sharkCircle2) / (2 * sizeof(float)));
         }
 
+        //glBindVertexArray(VAO[1]);
 
-        glBindVertexArray(VAO[1]);
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         if (activateRedCircle) {
             isLast1 = true;
@@ -1138,6 +1225,25 @@ int main(void)
             glUniform1f(moveYLocShark1, movingSharks[3]);
 
             glDrawArrays(GL_TRIANGLES, 3, 3);
+
+            //glUseProgram(circleShader);
+            ////glUniform2f(circlePosLoc, 1.2 * sin(time * speed + 2), 0.7 * cos(time * speed + 2));
+            //glUniform2f(circlePosLoc, -movingSharks[0], movingSharks[1]);
+            ////glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 0.0);
+            //glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 1.0);
+
+            //glBindVertexArray(VAO[15]);
+
+            //glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(sharkCircle1) / (2 * sizeof(float)));
+
+            //glUseProgram(circleShader);
+            ////glUniform2f(circlePosLoc, 1.2 * sin(time * speed + 2), 0.7 * cos(time * speed + 2));
+            //glUniform2f(circlePosLoc, -movingSharks[2], movingSharks[3]);
+            //glUniform4f(glGetUniformLocation(circleShader, "inColVec"), 0.0, 0.0, 0.0, 1.0);
+
+            //glBindVertexArray(VAO[16]);
+
+            //glDrawArrays(GL_TRIANGLE_FAN, 0, sizeof(sharkCircle2) / (2 * sizeof(float)));
         }
         else {
             rr = 0.05f;
@@ -1180,9 +1286,10 @@ int main(void)
         }
 
 
-        glUseProgram(basicShader);
-        glUniform1f(isIslandLoc, true);
-        glUniform1f(isFireLoc, true);
+        glUseProgram(islandsShader);
+        glUniform1f(isIslandLocIsland, true);
+        glUniform1f(isFireLocIsland, true);
+        glUniform1f(seaHeightLocIsland, currentWaterLevel);
 
 
         glBindVertexArray(VAO[2]);

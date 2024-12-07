@@ -159,6 +159,8 @@
     <None Include="extendFire.vert" />
     <None Include="fire.frag" />
     <None Include="fire.vert" />
+    <None Include="islands.vert" />
+    <None Include="islandShader.vert" />
     <None Include="moving.vert" />
     <None Include="packages.config" />
     <None Include="palm1.vert" />

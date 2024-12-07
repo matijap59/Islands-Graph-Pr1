@@ -15,26 +15,10 @@ out vec2 chTex;
 void main()
 {
 	vec2 pos = inPos;
-    
-    if(isIsland && !isFire){
-        if(inPos.y > -0.41){
-            gl_Position = vec4(inPos.x, inPos.y - seaHeight / 5.0, 0.0, 1.0);
-        } else if(inPos.y < 0.0){
-            gl_Position = vec4(inPos.x, inPos.y + seaHeight / 5.0, 0.0, 1.0);
-        }
-    }
-
     if(isIsland && isFire){
         if(isTopVertex > 0.0) {
             // Manipulacija gornjeg temena za animaciju (ako je to vrh)
             pos.y += sin(time) * 0.1; // Animacija pozicije
-        } else {
-            // Ostali vrhovi ostaju u odnosu na ostrvo
-            if(inPos.y > -0.41) {
-                pos.y -= seaHeight / 5.0;
-            } else if(inPos.y < 0.0) {
-                pos.y += seaHeight / 5.0;
-            }
         }
         if (isTopVertex == 0.0) {
                 float stretchFactor = sin(time) * 0.02; // Amplituda širenja
